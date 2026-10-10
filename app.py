@@ -295,14 +295,33 @@ import pandas as pd
 import numpy as np
 import json
 import re
+import os
+import requests
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
 import io
 
+load_dotenv()
+API_URL = os.getenv("SKILLSYNC_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+API_KEY = os.getenv(
+    "SKILLSYNC_INTERNAL_API_KEY", "skillsync-internal-secure-token-2026"
+).strip()
+
 # 1. Page Configuration (Must be the first Streamlit command)
 st.set_page_config(page_title="SkillSync AI Platform", page_icon="🚀", layout="wide")
+st.markdown(
+    """
+    <style>
+        .stAppDeployButton { display: none !important; }
+        div[data-testid="stToolbar"] { display: none !important; }
+        #MainMenu { visibility: hidden !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # 2. Helper Functions & ML Pipeline (Cached for performance)
 def normalize_skill(skill):
@@ -392,9 +411,9 @@ def predict_skills(user_skills_str, target_role, role_profiles, vectorizer, skil
 
 def plot_skill_gap(result):
     """Generate a matplotlib figure showing skill gap analysis."""
-    categories = ['Relevant\n(Have)', 'Irrelevant\n(Have, Not Needed)', 'To Learn\n(Missing)']
-    counts = [len(result['relevant_skills']), len(result['irrelevant_skills']), len(result['skills_to_learn'])]
-    colors = ['#2ecc71', '#e74c3c', '#3498db']
+    categories = ['Relevant\n(Matched)', 'Transferable\n(Secondary)', 'To Learn\n(Missing)']
+    counts = [len(result['relevant_skills']), len(result['transferable_skills']), len(result['skills_to_learn'])]
+    colors = ['#2ecc71', '#f39c12', '#3498db']
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     axes[0].bar(categories, counts, color=colors, edgecolor='white', linewidth=1.5)
@@ -431,7 +450,8 @@ with st.sidebar:
         help="E.g. Python, React, Data Analysis, SQL"
     )
     st.markdown("---")
-    st.markdown("💡 *Powered by TF-IDF & Cosine Similarity*")
+    st.caption("⚡ Powered by Nebius AI / Gemini & Tavily real-time search")
+    st.caption("Role discovery uses the local job dataset.")
 
 # Profile Summary
 if current_role or current_level:
@@ -458,65 +478,152 @@ with tab1:
     with colB:
         st.write("") # Spacing
         st.write("") # Spacing
-        analyze_btn = st.button("Run Gap Analysis", type="primary", use_container_width=True)
+        analyze_btn = st.button(
+            "Run Live Gap Analysis",
+            key="btn_run_gap",
+            type="primary",
+            use_container_width=True,
+        )
 
     if analyze_btn:
-        if not user_skills_input.strip():
-            st.warning("⚠️ Please enter your skills in the sidebar first.")
+        user_skills = [skill.strip() for skill in user_skills_input.split(",") if skill.strip()]
+        if not current_role.strip():
+            st.warning("Please enter your current role in the sidebar.")
+        elif not current_level:
+            st.warning("Please select your current level in the sidebar.")
+        elif not user_skills:
+            st.warning("Please enter your skills in the sidebar first.")
         else:
-            with st.spinner("Analyzing skill vectors..."):
-                result = predict_skills(user_skills_input, target_role_input, role_profiles, vectorizer, skill_vectors, all_skills)
-            
-            if result:
+            payload = {
+                "current_role": current_role.strip(),
+                "current_level": current_level,
+                "user_skills": user_skills,
+                "target_role": target_role_input,
+            }
+            try:
+                with st.spinner("Analyzing live market requirements with Tavily and Gemini..."):
+                    headers = {"X-API-Key": API_KEY}
+                    response = requests.post(
+                        f"{API_URL}/api/analyze-gap",
+                        json=payload,
+                        headers=headers,
+                        timeout=(5, 90),
+                    )
+
+                if response.status_code != 200:
+                    try:
+                        detail = response.json().get("detail", response.text)
+                    except ValueError:
+                        detail = response.text
+                    st.error(f"Analysis failed ({response.status_code}): {detail}")
+                    st.stop()
+
+                data = response.json()
+                breakdown = data["skill_breakdown"]
+                result = {
+                    "role": target_role_input,
+                    "match_score": data["match_score_percentage"],
+                    "relevant_skills": breakdown["relevant_matched"],
+                    "transferable_skills": breakdown["transferable_or_secondary"],
+                    "skills_to_learn": breakdown["missing_critical"],
+                }
+
                 # Top Metrics Row
                 m1, m2, m3 = st.columns(3)
-                m1.metric("Match Score", f"{result['match_score']}%", "Placement Probability")
+                m1.metric("Match Score", f"{result['match_score']}%")
                 m2.metric("Verified Skills", len(result['relevant_skills']))
                 m3.metric("Skills to Learn", len(result['skills_to_learn']), delta="-Gap", delta_color="inverse")
-                
+
+                st.info(data["market_benchmarks_summary"])
                 st.markdown("---")
-                
+
                 # Detailed Breakdown Columns
                 res_col1, res_col2, res_col3 = st.columns(3)
-                
+
                 with res_col1:
                     st.success("✅ Relevant Skills (Matched)")
                     for s in result['relevant_skills']:
-                        st.markdown(f"- {s.title()}")
-                         
+                        st.markdown(f"- {s}")
+
                 with res_col2:
-                    st.warning("⚠️ Irrelevant Skills (Not Core)")
-                    for s in result['irrelevant_skills']:
-                        st.markdown(f"- {s.title()}")
-                         
+                    st.warning("⚠️ Transferable / Secondary")
+                    for s in result['transferable_skills']:
+                        st.markdown(f"- {s}")
+
                 with res_col3:
                     st.error("📚 Action Plan (Skills to Learn)")
                     for s in result['skills_to_learn']:
-                        st.markdown(f"- **{s.title()}**")
-                
+                        st.markdown(f"- **{s}**")
+
                 # Skill Gap Plot
                 st.markdown("---")
                 st.subheader("Skill Gap Visualization")
                 fig = plot_skill_gap(result)
                 st.pyplot(fig)
-                
+
+                with st.expander("🗺️ Personalized Learning Roadmap", expanded=True):
+                    for step in data["step_by_step_learning_roadmap"]:
+                        skills = ", ".join(step["skills"])
+                        with st.container(border=True):
+                            st.markdown(f"### 📍 {step['phase']}")
+                            st.write(f"**Key focus:** {skills or 'General preparation'}")
+                            st.info(
+                                f"🛠️ **Recommended project:** "
+                                f"{step['recommended_project']}"
+                            )
+
+                with st.expander("🎤 Interview Preparation"):
+                    for question in data["interview_prep_questions"]:
+                        st.markdown(f"- {question}")
+
+                if data["search_sources"]:
+                    st.caption("🔍 **Verified Market Sources**")
+                    for source in data["search_sources"][:5]:
+                        st.markdown(f"- [{source}]({source})")
+
                 # Export Functionality
                 st.markdown("---")
                 st.subheader("📥 Export Action Plan")
-                
-                # Create a DataFrame for the export
-                export_df = pd.DataFrame({
-                    "Category": ["Matched"]*len(result['relevant_skills']) + ["To Learn"]*len(result['skills_to_learn']),
-                    "Skill": result['relevant_skills'] + result['skills_to_learn']
-                })
+
+                export_rows = [
+                    {"Category": category, "Skill": skill}
+                    for category, skills in (
+                        ("Matched", result["relevant_skills"]),
+                        ("Transferable / Secondary", result["transferable_skills"]),
+                        ("To Learn", result["skills_to_learn"]),
+                    )
+                    for skill in skills
+                ]
+                export_rows.extend(
+                    {
+                        "Category": f"Roadmap - {step['phase']}",
+                        "Skill": (
+                            f"{', '.join(step['skills'])} | Project: "
+                            f"{step['recommended_project']}"
+                        ),
+                    }
+                    for step in data["step_by_step_learning_roadmap"]
+                )
+                export_df = pd.DataFrame(export_rows, columns=["Category", "Skill"])
                 csv = export_df.to_csv(index=False).encode('utf-8')
-                
+
                 st.download_button(
                     label="Download Gap Report (CSV)",
                     data=csv,
                     file_name=f"{target_role_input.replace(' ', '_')}_Gap_Report.csv",
                     mime="text/csv",
                 )
+            except requests.exceptions.Timeout:
+                st.error("The analysis request timed out. Please try again.")
+            except requests.exceptions.ConnectionError:
+                st.error(
+                    f"Cannot connect to the SkillSync API at {API_URL}. "
+                    "Ensure the FastAPI server is running."
+                )
+            except requests.exceptions.RequestException as exc:
+                st.error(f"Could not complete the analysis request: {exc}")
+            except (KeyError, TypeError, ValueError) as exc:
+                st.error(f"The analysis API returned an unexpected response: {exc}")
 
 # ── TAB 2: ROLE DISCOVERY ────────────────────────────────────────────────────
 with tab2:

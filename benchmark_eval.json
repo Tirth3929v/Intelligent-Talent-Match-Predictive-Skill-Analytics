@@ -1,0 +1,152 @@
+[
+  {
+    "id": "bench_01",
+    "name": "Junior React Dev to Full-Stack Developer",
+    "current_role": "Junior Frontend Developer",
+    "current_level": "Junior",
+    "user_skills": ["javascript", "react", "html", "css", "git"],
+    "target_role": "Full-Stack Developer",
+    "ground_truth_skills": ["javascript", "react", "node.js", "express", "postgresql", "rest api", "docker", "git"],
+    "market_context": "Full-Stack Developer roles in 2026 require proficiency in React, JavaScript, Node.js, Express, PostgreSQL, REST API design, Git, and containerization with Docker."
+  },
+  {
+    "id": "bench_02",
+    "name": "Data Analyst to Machine Learning Engineer",
+    "current_role": "Data Analyst",
+    "current_level": "Mid",
+    "user_skills": ["python", "sql", "pandas", "numpy"],
+    "target_role": "Machine Learning Engineer",
+    "ground_truth_skills": ["python", "machine learning", "scikit-learn", "pytorch", "mlops", "docker", "fastapi", "sql"],
+    "market_context": "Modern Machine Learning Engineers need strong Python, SQL, Machine Learning fundamentals, PyTorch, Scikit-Learn, MLOps lifecycle, Docker, and FastAPI model serving."
+  },
+  {
+    "id": "bench_03",
+    "name": "Backend Python Dev to Cloud DevOps Engineer",
+    "current_role": "Backend Developer",
+    "current_level": "Mid",
+    "user_skills": ["python", "django", "postgresql", "linux", "git"],
+    "target_role": "Cloud DevOps Engineer",
+    "ground_truth_skills": ["docker", "kubernetes", "terraform", "amazon web services", "ci/cd", "github actions", "linux", "python"],
+    "market_context": "Cloud DevOps Engineers require Linux, Python scripting, Docker, Kubernetes orchestration, Terraform Infrastructure as Code, AWS, CI/CD pipelines, and GitHub Actions."
+  },
+  {
+    "id": "bench_04",
+    "name": "Vue Dev to Senior Frontend Engineer",
+    "current_role": "Frontend Developer",
+    "current_level": "Junior",
+    "user_skills": ["javascript", "vue", "html", "css"],
+    "target_role": "Senior Frontend Engineer",
+    "ground_truth_skills": ["typescript", "javascript", "vue", "next.js", "unit testing", "playwright", "tailwind css", "system design"],
+    "market_context": "Senior Frontend Engineers must master TypeScript, JavaScript, Vue or Next.js, automated unit testing, Playwright E2E tests, Tailwind CSS, and frontend system design."
+  },
+  {
+    "id": "bench_05",
+    "name": "QA Tester to SDET",
+    "current_role": "Quality Assurance Tester",
+    "current_level": "Junior",
+    "user_skills": ["unit testing", "python", "git"],
+    "target_role": "Software Development Engineer in Test (SDET)",
+    "ground_truth_skills": ["python", "playwright", "cypress", "ci/cd", "docker", "rest api", "unit testing", "git"],
+    "market_context": "SDET positions demand Python automation, Playwright, Cypress, CI/CD integration, Docker, REST API test suites, unit testing, and Git version control."
+  },
+  {
+    "id": "bench_06",
+    "name": "Java Dev to Microservices Architect",
+    "current_role": "Java Developer",
+    "current_level": "Senior",
+    "user_skills": ["java", "spring boot", "mysql", "git"],
+    "target_role": "Microservices Solutions Architect",
+    "ground_truth_skills": ["java", "spring boot", "microservices", "kubernetes", "apache kafka", "grpc", "distributed systems", "docker"],
+    "market_context": "Microservices Solutions Architects build distributed systems using Java, Spring Boot, Microservices patterns, Kubernetes, Apache Kafka event streaming, gRPC, and Docker."
+  },
+  {
+    "id": "bench_07",
+    "name": "Android Dev to Mobile Engineering Lead",
+    "current_role": "Android Developer",
+    "current_level": "Mid",
+    "user_skills": ["kotlin", "android development", "git"],
+    "target_role": "Mobile Engineering Lead",
+    "ground_truth_skills": ["kotlin", "react native", "android development", "ci/cd", "system design", "rest api", "git"],
+    "market_context": "Mobile Engineering Leads oversee Kotlin native Android development and cross-platform React Native apps, CI/CD mobile pipelines, system design, and REST APIs."
+  },
+  {
+    "id": "bench_08",
+    "name": "SysAdmin to Site Reliability Engineer (SRE)",
+    "current_role": "Systems Administrator",
+    "current_level": "Mid",
+    "user_skills": ["linux", "bash", "powershell"],
+    "target_role": "Site Reliability Engineer (SRE)",
+    "ground_truth_skills": ["linux", "python", "kubernetes", "prometheus", "grafana", "terraform", "docker", "ci/cd"],
+    "market_context": "Site Reliability Engineers emphasize Linux, Python automation, Kubernetes, Prometheus alerting, Grafana dashboards, Terraform, Docker, and resilient CI/CD practices."
+  },
+  {
+    "id": "bench_09",
+    "name": "BI Analyst to Data Engineer",
+    "current_role": "BI Analyst",
+    "current_level": "Mid",
+    "user_skills": ["sql", "python"],
+    "target_role": "Data Engineer",
+    "ground_truth_skills": ["sql", "python", "apache spark", "airflow", "snowflake", "dbt", "docker", "bigquery"],
+    "market_context": "Modern Data Engineers build data pipelines using SQL, Python, Apache Spark, Apache Airflow orchestration, Snowflake, dbt data modeling, BigQuery, and Docker."
+  },
+  {
+    "id": "bench_10",
+    "name": "Python Programmer to AI/LLM Solutions Engineer",
+    "current_role": "Python Developer",
+    "current_level": "Mid",
+    "user_skills": ["python", "fastapi", "git"],
+    "target_role": "AI/LLM Solutions Engineer",
+    "ground_truth_skills": ["python", "langchain", "rag", "pytorch", "pinecone", "fastapi", "docker", "hugging face"],
+    "market_context": "AI/LLM Solutions Engineers deploy RAG pipelines with Python, LangChain, PyTorch, Pinecone vector search, Hugging Face transformers, FastAPI APIs, and Docker."
+  },
+  {
+    "id": "bench_11",
+    "name": "Full-Stack Dev to Staff Platform Engineer",
+    "current_role": "Full-Stack Developer",
+    "current_level": "Senior",
+    "user_skills": ["javascript", "node.js", "react", "postgresql", "docker"],
+    "target_role": "Staff Platform Engineer",
+    "ground_truth_skills": ["go", "kubernetes", "terraform", "docker", "microservices", "distributed systems", "ci/cd", "helm"],
+    "market_context": "Staff Platform Engineers build developer platforms with Go, Kubernetes, Terraform, Docker, Microservices, Distributed Systems, Helm, and CI/CD."
+  },
+  {
+    "id": "bench_12",
+    "name": "Security Analyst to DevSecOps Engineer",
+    "current_role": "Security Analyst",
+    "current_level": "Mid",
+    "user_skills": ["linux", "owasp", "git"],
+    "target_role": "DevSecOps Engineer",
+    "ground_truth_skills": ["linux", "docker", "kubernetes", "ci/cd", "owasp", "terraform", "github actions", "zero trust"],
+    "market_context": "DevSecOps Engineers secure software delivery via Linux, Docker container scanning, Kubernetes policies, CI/CD pipelines, OWASP top 10 remediation, Terraform, and Zero Trust."
+  },
+  {
+    "id": "bench_13",
+    "name": "Network Engineer to Cloud Infrastructure Architect",
+    "current_role": "Network Engineer",
+    "current_level": "Senior",
+    "user_skills": ["linux", "bash"],
+    "target_role": "Cloud Infrastructure Architect",
+    "ground_truth_skills": ["amazon web services", "terraform", "kubernetes", "linux", "system design", "docker", "microsoft azure"],
+    "market_context": "Cloud Infrastructure Architects design enterprise multi-cloud setups utilizing AWS, Azure, Terraform IaC, Kubernetes, Linux, and high-availability System Design."
+  },
+  {
+    "id": "bench_14",
+    "name": "SQL DBA to Data Platform Engineer",
+    "current_role": "Database Administrator",
+    "current_level": "Senior",
+    "user_skills": ["sql", "postgresql", "mysql", "linux"],
+    "target_role": "Data Platform Engineer",
+    "ground_truth_skills": ["sql", "postgresql", "apache kafka", "apache spark", "docker", "kubernetes", "snowflake", "python"],
+    "market_context": "Data Platform Engineers build scalable storage tiers using SQL, PostgreSQL, Apache Kafka streaming, Apache Spark, Docker, Kubernetes, Snowflake, and Python."
+  },
+  {
+    "id": "bench_15",
+    "name": "Embedded Developer to IoT Firmware Engineer",
+    "current_role": "Embedded C Developer",
+    "current_level": "Mid",
+    "user_skills": ["c", "c++", "linux", "git"],
+    "target_role": "IoT Firmware Engineer",
+    "ground_truth_skills": ["c", "c++", "rust", "linux", "python", "docker", "websockets", "git"],
+    "market_context": "IoT Firmware Engineers program connected devices using C, C++, Rust, Embedded Linux, Python test scripts, Docker emulation, WebSockets, and Git."
+  }
+]
