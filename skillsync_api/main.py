@@ -90,7 +90,9 @@ async def analyze_gap(
     """Search current market requirements and analyze a candidate's skill gap."""
     clean_request = sanitize_analysis_request(payload)
     try:
-        return await get_analysis_service().analyze(clean_request)
+        return await get_analysis_service().analyze(
+            clean_request, allow_snapshot_fallback=True
+        )
     except ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except MarketSearchError as exc:

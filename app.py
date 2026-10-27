@@ -43,8 +43,14 @@ st.set_page_config(
 try:
     if hasattr(st, "secrets"):
         for k, v in st.secrets.items():
-            if isinstance(v, str) and k not in os.environ:
-                os.environ[k] = v
+            if isinstance(v, str):
+                cleaned = v.strip().strip('"').strip("'")
+                if cleaned and (
+                    k not in os.environ
+                    or "YOUR_" in os.environ.get(k, "")
+                    or not os.environ.get(k, "").strip()
+                ):
+                    os.environ[k] = cleaned
 except Exception:
     pass
 
