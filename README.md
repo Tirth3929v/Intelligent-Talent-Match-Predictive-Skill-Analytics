@@ -44,27 +44,37 @@ Job seekers and students in 2026 struggle to understand exactly which skills the
 
 SkillSync AI bridges candidate capabilities with real-time industry demands through an intelligent, cost-optimized, and mathematically grounded pipeline:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          Streamlit User Interface                           │
-│     (Interactive Dashboards, Token Factory Telemetry, Tavily Hub, CSV)      │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ REST API (X-API-Key Secured)
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                  FastAPI Zero-Trust Orchestration Service                   │
-│   (slowapi Rate Limiting, Prompt Injection Sanitizer, CORS Protection)      │
-└──────────────┬───────────────────────────────┬──────────────────────────────┘
-               │                               │
-               ▼                               ▼
-┌───────────────────────────────┐   ┌─────────────────────────────────────────┐
-│     Tavily Search Engine      │   │     Nebius Token Factory Router         │
-│  - Live 2026 Market Demands   │   │     (NVIDIA Nemotron 3 Model Family)    │
-│  - Salary & Tech Benchmarks   │   │                                         │
-│  - Verified Docs & Git Repos  │   │  ⚡ Fast: Nemotron-3-Nano (30B)         │
-└───────────────────────────────┘   │  ⚖️ Balanced: Nemotron-3-Super (120B)    │
-                                    │  🧠 Reasoning: Nemotron-3-Ultra (550B)  │
-                                    └─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph UI["🖥️ Streamlit Frontend (Self-Healing Cloud / API Mode)"]
+        P["🎯 1-Click Judge Demo Presets"]
+        T1["📊 Target Role Analyzer & Telemetry"]
+        T2["⚡ Capstone Repo Generator (.zip)"]
+        T3["🔎 Live 2026 Job Radar & STAR Rewriter"]
+    end
+
+    subgraph Guard["🛡️ Zero-Trust & Deterministic Core (FastAPI / Embedded)"]
+        Z["Regex + Pydantic Injection Shield"]
+        D["TF-IDF + Cosine Similarity Engine\n(100% Precision | 97.46% Recall | 0% Drift)"]
+    end
+
+    subgraph Ground["🌐 Real-Time Web Grounding ($3k Tavily Track)"]
+        TV["Tavily Search API (search_depth='advanced')\nLive 2026 Job Openings, Salary Signals & Verified Docs"]
+    end
+
+    subgraph Nebius["🚀 Nebius Token Factory (Multi-Tier NVIDIA Nemotron 3 Router)"]
+        N1["⚡ Fast Tier: nvidia/Nemotron-3-Nano-30B\nSkill Canonicalization & Query Synthesis"]
+        N2["⚖️ Balanced Tier: nvidia/Nemotron-3-Super-120B\nMarket Distillation & STAR Resume Rewriting"]
+        N3["🧠 Reasoning Tier: nvidia/Nemotron-3-Ultra-550B\n90-Day Roadmaps & Capstone Boilerplate Code"]
+    end
+
+    UI --> Guard
+    Guard --> D
+    D --> Ground
+    Ground --> TV
+    TV --> Nebius
+    N1 --> N2 --> N3
+    Nebius --> UI
 ```
 
 ---
@@ -78,7 +88,7 @@ Rather than routing every task to a single massive model, SkillSync AI cascades 
 - **Nemotron 3 Ultra (550B) [Reasoning Tier]:** Deep 90-day multi-phase upskilling roadmaps, production portfolio project architectures, and technical interview questions.
 - **Cost / Token Savings:** Cascaded model routing achieves **~74% token credit savings** compared to running all tasks purely on Ultra.
 
-### 🔍 2. Real-Time Market Grounding via Tavily Search API
+### 🔍 2. Real-Time Market Demand Grounding via Tavily Search API
 *Judged for the $3,000 Best Use of Tavily Sponsor Prize*
 - **Live Market Demand Verification:** Uses Tavily (`search_depth="advanced"`, `include_answer="advanced"`) to pull real-time 2026 hiring criteria, salary benchmarks, and emerging skills.
 - **Actionable Documentation Grounding:** Automatically queries Tavily for official documentation and GitHub repositories for identified skill gaps—ensuring Nemotron 3 Ultra never hallucinates broken URLs.
@@ -101,7 +111,8 @@ Evaluated across **15 reference career transition profiles** (e.g., Junior React
 | **Macro-Average Precision** | **100.00%** | Verified across all test cases |
 | **Macro-Average Recall** | **97.26%** | High coverage across diverse engineering tracks |
 | **Arithmetic Reproducibility** | **100.00%** | Exact score consistency on identical profiles (Zero Drift) |
-| **Automated Unit Tests** | **31 / 31 Passed** | 100% test pass rate across API, router, and security |
+| **Automated Unit Tests** | **34 / 34 Passed** | 100% test pass rate across API, router, new features, and security |
+
 
 Run the benchmark suite:
 ```bash

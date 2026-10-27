@@ -57,6 +57,39 @@ SkillSync AI acts as an autonomous career intelligence partner that bridges cand
 
 ### 🏗️ How We Built It
 
+```mermaid
+flowchart TD
+    subgraph UI["🖥️ Streamlit Frontend (Self-Healing Cloud / API Mode)"]
+        P["🎯 1-Click Judge Demo Presets"]
+        T1["📊 Target Role Analyzer & Telemetry"]
+        T2["⚡ Capstone Repo Generator (.zip)"]
+        T3["🔎 Live 2026 Job Radar & STAR Rewriter"]
+    end
+
+    subgraph Guard["🛡️ Zero-Trust & Deterministic Core (FastAPI / Embedded)"]
+        Z["Regex + Pydantic Injection Shield"]
+        D["TF-IDF + Cosine Similarity Engine\n(100% Precision | 97.46% Recall | 0% Drift)"]
+    end
+
+    subgraph Ground["🌐 Real-Time Web Grounding ($3k Tavily Track)"]
+        TV["Tavily Search API (search_depth='advanced')\nLive 2026 Job Openings, Salary Signals & Verified Docs"]
+    end
+
+    subgraph Nebius["🚀 Nebius Token Factory (Multi-Tier NVIDIA Nemotron 3 Router)"]
+        N1["⚡ Fast Tier: nvidia/Nemotron-3-Nano-30B\nSkill Canonicalization & Query Synthesis"]
+        N2["⚖️ Balanced Tier: nvidia/Nemotron-3-Super-120B\nMarket Distillation & STAR Resume Rewriting"]
+        N3["🧠 Reasoning Tier: nvidia/Nemotron-3-Ultra-550B\n90-Day Roadmaps & Capstone Boilerplate Code"]
+    end
+
+    UI --> Guard
+    Guard --> D
+    D --> Ground
+    Ground --> TV
+    TV --> Nebius
+    N1 --> N2 --> N3
+    Nebius --> UI
+```
+
 We engineered SkillSync AI with a strict separation of concerns across a modern decoupled stack:
 
 #### 1. Presentation Tier (`app.py`)
