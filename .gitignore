@@ -1,6 +1,8 @@
 .kilo/
 .venv/
-.venv-1/
+.venv*/
 __pycache__/
 *.pyc
 .env
+archive/
+archive.zip

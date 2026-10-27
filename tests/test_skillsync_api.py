@@ -82,6 +82,39 @@ class AnalysisServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(call.kwargs["model"], "meta-llama/test-model")
         self.assertEqual(call.kwargs["response_format"], {"type": "json_object"})
 
+    async def test_provenance_records_runtime_served_model_and_tokens(self) -> None:
+        model_payload = {
+            "match_score_percentage": 50,
+            "market_benchmarks_summary": "Summary",
+            "skill_breakdown": {
+                "relevant_matched": ["Python"],
+                "transferable_or_secondary": [],
+                "missing_critical": [],
+            },
+            "step_by_step_learning_roadmap": [
+                {"phase": "1", "skills": ["Python"], "recommended_project": "Proj"}
+            ],
+            "interview_prep_questions": ["Q1"],
+            "search_sources": [],
+        }
+        rich_completion = SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content=json.dumps(model_payload))
+                )
+            ],
+            model="nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
+            id="chatcmpl-nebius-xyz",
+            usage=SimpleNamespace(prompt_tokens=120, completion_tokens=85, total_tokens=205),
+        )
+        self.openai.chat.completions.create = AsyncMock(return_value=rich_completion)
+        result = await self.service.analyze(self.request)
+        self.assertIn("served: nvidia/Llama-3.1-Nemotron-70B-Instruct-HF", result.model_provenance)
+        self.assertIn("requested: meta-llama/test-model", result.model_provenance)
+        self.assertIn("tokens: 205", result.model_provenance)
+        self.assertIn("id: chatcmpl-nebius-xyz", result.model_provenance)
+        self.assertIn("latency: ", result.model_provenance)
+
     async def test_missing_credentials_are_reported(self) -> None:
         service = AnalysisService(
             ServiceSettings(None, "nebius-test-key", "test-model"),

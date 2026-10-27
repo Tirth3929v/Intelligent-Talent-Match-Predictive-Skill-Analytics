@@ -30,7 +30,7 @@ class StreamlitAnalyzerTests(unittest.TestCase):
         with patch("requests.post", return_value=response) as post:
             app = AppTest.from_file("app.py").run(timeout=30)
             app.text_input[0].set_value("Data Analyst")
-            app.selectbox[1].select("Junior")
+            app.selectbox[0].select("Junior")
             app.button(key="btn_run_gap").click().run(timeout=30)
 
         self.assertFalse(app.exception)
