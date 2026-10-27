@@ -10,3 +10,4 @@ tavily-python
 python-dotenv
 requests
 slowapi
+nest_asyncio

@@ -5,7 +5,8 @@ Frontend application built with Streamlit, powered by:
 - Tavily Search API (Real-Time 2026 Labor Market Grounding & Job Matches)
 - Scikit-Learn TF-IDF Deterministic Engine (100% Reproducible Scoring)
 """
-
+import asyncio
+import concurrent.futures
 import io
 import json
 import os
@@ -22,11 +23,14 @@ from dotenv import load_dotenv
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from skillsync_api.models import (
+    AnalysisRequest,
+    CapstoneBlueprintRequest,
+    JobMatchAndRewriteRequest,
+)
+from skillsync_api.service import AnalysisService
+
 load_dotenv()
-API_URL = os.getenv("SKILLSYNC_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
-API_KEY = os.getenv(
-    "SKILLSYNC_INTERNAL_API_KEY", "skillsync-internal-secure-token-2026"
-).strip()
 
 # 1. Page Configuration (Must be the first Streamlit command)
 st.set_page_config(
@@ -34,6 +38,20 @@ st.set_page_config(
     page_icon="🚀",
     layout="wide",
 )
+
+# Sync Streamlit Cloud secrets to os.environ so Nebius & Tavily clients detect them
+try:
+    if hasattr(st, "secrets"):
+        for k, v in st.secrets.items():
+            if isinstance(v, str) and k not in os.environ:
+                os.environ[k] = v
+except Exception:
+    pass
+
+API_URL = os.getenv("SKILLSYNC_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+API_KEY = os.getenv(
+    "SKILLSYNC_INTERNAL_API_KEY", "skillsync-internal-secure-token-2026"
+).strip()
 
 st.markdown(
     """
@@ -278,6 +296,113 @@ def create_blueprint_zip(
     return zip_buffer.getvalue()
 
 
+# ── Self-Healing In-Process Fallbacks (Zero-Crash Guarantee) ──────────────────
+@st.cache_resource
+def get_embedded_service() -> AnalysisService:
+    """Singleton in-process service for standalone Streamlit Cloud deployment."""
+    return AnalysisService()
+
+
+def run_async(coro):
+    """Safely execute an async coroutine inside Streamlit's synchronous thread."""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            try:
+                import nest_asyncio
+                nest_asyncio.apply()
+                return loop.run_until_complete(coro)
+            except Exception:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    return executor.submit(asyncio.run, coro).result()
+        return asyncio.run(coro)
+    except RuntimeError:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, coro).result()
+
+
+def call_skillsync_analyze(payload: dict) -> dict:
+    """Try FastAPI over HTTP first; seamlessly fall back to embedded in-process service."""
+    api_url = os.getenv("SKILLSYNC_API_BASE_URL", API_URL).rstrip("/")
+    headers = {"X-API-Key": API_KEY}
+    try:
+        resp = requests.post(
+            f"{api_url}/api/analyze-gap",
+            json=payload,
+            headers=headers,
+            timeout=(2, 60),
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        elif resp.status_code in [400, 422]:
+            try:
+                detail = resp.json().get("detail", resp.text)
+            except Exception:
+                detail = resp.text
+            raise ValueError(f"Analysis validation error: {detail}")
+    except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+        pass  # FastAPI port 8000 not reachable -> execute in-process!
+    except requests.exceptions.RequestException:
+        pass
+
+    service = get_embedded_service()
+    req = AnalysisRequest(**payload)
+    result = run_async(service.analyze(req, allow_snapshot_fallback=True))
+    return result.model_dump()
+
+
+def call_skillsync_blueprint(payload: dict) -> dict:
+    """Generate portfolio starter blueprint via HTTP or embedded service."""
+    api_url = os.getenv("SKILLSYNC_API_BASE_URL", API_URL).rstrip("/")
+    headers = {"X-API-Key": API_KEY}
+    try:
+        resp = requests.post(
+            f"{api_url}/api/generate-capstone-blueprint",
+            json=payload,
+            headers=headers,
+            timeout=(2, 60),
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+        pass
+    except requests.exceptions.RequestException:
+        pass
+
+    service = get_embedded_service()
+    req = CapstoneBlueprintRequest(**payload)
+    result = run_async(service.generate_capstone_blueprint(req))
+    return result.model_dump()
+
+
+def call_skillsync_jobs(payload: dict) -> dict:
+    """Match live 2026 jobs and rewrite bullets via HTTP or embedded service."""
+    api_url = os.getenv("SKILLSYNC_API_BASE_URL", API_URL).rstrip("/")
+    headers = {"X-API-Key": API_KEY}
+    try:
+        resp = requests.post(
+            f"{api_url}/api/match-jobs-and-rewrite-bullets",
+            json=payload,
+            headers=headers,
+            timeout=(2, 60),
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+        pass
+    except requests.exceptions.RequestException:
+        pass
+
+    service = get_embedded_service()
+    req = JobMatchAndRewriteRequest(**payload)
+    result = run_async(service.match_jobs_and_rewrite(req))
+    return result.model_dump()
+
+
 # 4. Load Dataset
 unique_roles, role_profiles, vectorizer, skill_vectors, all_skills = (
     load_and_prepare_data()
@@ -453,27 +578,8 @@ with tab1:
                 with st.spinner(
                     "Executing Nebius Token Factory router (NVIDIA Nemotron 3) & Tavily live search..."
                 ):
-                    headers = {"X-API-Key": API_KEY}
-                    response = requests.post(
-                        f"{API_URL}/api/analyze-gap",
-                        json=payload,
-                        headers=headers,
-                        timeout=(5, 90),
-                    )
-
-                if response.status_code != 200:
-                    try:
-                        detail = response.json().get("detail", response.text)
-                    except ValueError:
-                        detail = response.text
-                    st.error(f"Analysis failed ({response.status_code}): {detail}")
-                    st.stop()
-
-                st.session_state["analysis_data"] = response.json()
-            except requests.exceptions.Timeout:
-                st.error("The analysis request timed out. Please try again.")
-            except requests.exceptions.ConnectionError:
-                st.error(f"Cannot connect to the SkillSync API at {API_URL}. Ensure FastAPI is running.")
+                    data = call_skillsync_analyze(payload)
+                st.session_state["analysis_data"] = data
             except Exception as exc:
                 st.error(f"Could not complete the analysis request: {exc}")
 
@@ -616,59 +722,50 @@ with tab1:
             }
             try:
                 with st.spinner("Nemotron 3 Ultra (550B) is architecting your starter repository..."):
-                    headers = {"X-API-Key": API_KEY}
-                    bp_res = requests.post(
-                        f"{API_URL}/api/generate-capstone-blueprint",
-                        json=bp_payload,
-                        headers=headers,
-                        timeout=(5, 90),
+                    bp_data = call_skillsync_blueprint(bp_payload)
+
+                st.success(f"🎉 Blueprint Generated: **{bp_data['project_title']}**")
+                st.caption(f"Served by: `{bp_data.get('model_tier_used')}` | Latency: `{bp_data.get('latency_ms')} ms`")
+
+                with st.container(border=True):
+                    st.markdown(f"### 🏗️ {bp_data['project_title']}")
+                    st.write(f"**Problem Statement:** {bp_data['problem_statement']}")
+                    st.info(f"**Architecture:** {bp_data['architecture_summary']}")
+                    st.write(f"**Bridged Skills:** {', '.join(bp_data['bridged_skills'])}")
+
+                    bp_tab_code, bp_tab_readme, bp_tab_reqs = st.tabs(["💻 Starter main.py", "📄 README.md", "📦 requirements.txt"])
+                    with bp_tab_code:
+                        st.code(bp_data["starter_code_py"], language="python")
+                    with bp_tab_readme:
+                        st.markdown(bp_data["readme_markdown"])
+                    with bp_tab_reqs:
+                        st.code(bp_data["requirements_txt"], language="text")
+
+                    # 1-Click Starter Repository ZIP Download
+                    zip_bytes = create_blueprint_zip(
+                        project_title=bp_data["project_title"],
+                        readme_content=bp_data["readme_markdown"],
+                        starter_code=bp_data["starter_code_py"],
+                        requirements=bp_data["requirements_txt"],
                     )
-                if bp_res.status_code == 200:
-                    bp_data = bp_res.json()
-                    st.success(f"🎉 Blueprint Generated: **{bp_data['project_title']}**")
-                    st.caption(f"Served by: `{bp_data.get('model_tier_used')}` | Latency: `{bp_data.get('latency_ms')} ms`")
 
-                    with st.container(border=True):
-                        st.markdown(f"### 🏗️ {bp_data['project_title']}")
-                        st.write(f"**Problem Statement:** {bp_data['problem_statement']}")
-                        st.info(f"**Architecture:** {bp_data['architecture_summary']}")
-                        st.write(f"**Bridged Skills:** {', '.join(bp_data['bridged_skills'])}")
-
-                        bp_tab_code, bp_tab_readme, bp_tab_reqs = st.tabs(["💻 Starter main.py", "📄 README.md", "📦 requirements.txt"])
-                        with bp_tab_code:
-                            st.code(bp_data["starter_code_py"], language="python")
-                        with bp_tab_readme:
-                            st.markdown(bp_data["readme_markdown"])
-                        with bp_tab_reqs:
-                            st.code(bp_data["requirements_txt"], language="text")
-
-                        # 1-Click Starter Repository ZIP Download
-                        zip_bytes = create_blueprint_zip(
-                            project_title=bp_data["project_title"],
-                            readme_content=bp_data["readme_markdown"],
-                            starter_code=bp_data["starter_code_py"],
-                            requirements=bp_data["requirements_txt"],
+                    col_dl1, col_dl2 = st.columns(2)
+                    with col_dl1:
+                        st.download_button(
+                            label="📦 Download Starter Repo (.zip)",
+                            data=zip_bytes,
+                            file_name=f"{bp_data['project_title']}_starter_repo.zip",
+                            mime="application/zip",
+                            use_container_width=True,
                         )
-
-                        col_dl1, col_dl2 = st.columns(2)
-                        with col_dl1:
-                            st.download_button(
-                                label="📦 Download Starter Repo (.zip)",
-                                data=zip_bytes,
-                                file_name=f"{bp_data['project_title']}_starter_repo.zip",
-                                mime="application/zip",
-                                use_container_width=True,
-                            )
-                        with col_dl2:
-                            st.download_button(
-                                label="📄 Download Architecture README (.md)",
-                                data=bp_data["readme_markdown"],
-                                file_name=f"{bp_data['project_title']}_README.md",
-                                mime="text/markdown",
-                                use_container_width=True,
-                            )
-                else:
-                    st.error(f"Blueprint generation failed ({bp_res.status_code}): {bp_res.text}")
+                    with col_dl2:
+                        st.download_button(
+                            label="📄 Download Architecture README (.md)",
+                            data=bp_data["readme_markdown"],
+                            file_name=f"{bp_data['project_title']}_README.md",
+                            mime="text/markdown",
+                            use_container_width=True,
+                        )
             except Exception as exc:
                 st.error(f"Could not generate blueprint: {exc}")
 
@@ -787,46 +884,36 @@ with tab3:
             }
             try:
                 with st.spinner("Tavily is fetching live 2026 job openings & Nemotron 3 Super is rewriting bullets..."):
-                    headers = {"X-API-Key": API_KEY}
-                    job_res = requests.post(
-                        f"{API_URL}/api/match-jobs-and-rewrite-bullets",
-                        json=rewrite_payload,
-                        headers=headers,
-                        timeout=(5, 90),
-                    )
+                    job_data = call_skillsync_jobs(rewrite_payload)
 
-                if job_res.status_code == 200:
-                    job_data = job_res.json()
-                    st.success("🎉 Live 2026 Job Postings Verified & Resume Bullets Optimized!")
-                    st.caption(f"Model: `{job_data.get('model_tier_used')}` | Latency: `{job_data.get('latency_ms')} ms`")
+                st.success("🎉 Live 2026 Job Postings Verified & Resume Bullets Optimized!")
+                st.caption(f"Model: `{job_data.get('model_tier_used')}` | Latency: `{job_data.get('latency_ms')} ms`")
 
-                    # Live Openings Column & Rewritten Bullets Column
-                    col_jobs, col_bullets = st.columns([1, 1])
+                # Live Openings Column & Rewritten Bullets Column
+                col_jobs, col_bullets = st.columns([1, 1])
 
-                    with col_jobs:
-                        st.markdown("#### 🏢 Real-Time 2026 Job Openings (Tavily Search)")
-                        st.caption(job_data.get("market_demand_notes", ""))
-                        for job in job_data.get("live_openings", []):
-                            with st.container(border=True):
-                                st.markdown(f"**[{job['title']}]({job['url']})**")
-                                st.write(f"🏢 **Company:** {job['company']} | 📍 **Location:** {job['location']}")
-                                st.caption(job["snippet"])
-                                if job.get("required_skills"):
-                                    st.write(f"🔑 **Key Demands:** `{', '.join(job['required_skills'])}`")
+                with col_jobs:
+                    st.markdown("#### 🏢 Real-Time 2026 Job Openings (Tavily Search)")
+                    st.caption(job_data.get("market_demand_notes", ""))
+                    for job in job_data.get("live_openings", []):
+                        with st.container(border=True):
+                            st.markdown(f"**[{job['title']}]({job['url']})**")
+                            st.write(f"🏢 **Company:** {job['company']} | 📍 **Location:** {job['location']}")
+                            st.caption(job["snippet"])
+                            if job.get("required_skills"):
+                                st.write(f"🔑 **Key Demands:** `{', '.join(job['required_skills'])}`")
 
-                    with col_bullets:
-                        st.markdown("#### ✍️ Tailored STAR Resume Bullets (Nemotron Super)")
-                        for item in job_data.get("rewritten_bullets", []):
-                            with st.container(border=True):
-                                st.markdown("**Before (Original):**")
-                                st.text(item["original_bullet"])
-                                st.markdown("**After (STAR Optimized & Aligned):**")
-                                st.info(item["rewritten_bullet"])
-                                if item.get("target_skills_highlighted"):
-                                    st.write(f"🎯 **Skills Highlighted:** `{', '.join(item['target_skills_highlighted'])}`")
-                                if item.get("impact_rationale"):
-                                    st.caption(f"💡 *Rationale:* {item['impact_rationale']}")
-                else:
-                    st.error(f"Job match and rewrite failed ({job_res.status_code}): {job_res.text}")
+                with col_bullets:
+                    st.markdown("#### ✍️ Tailored STAR Resume Bullets (Nemotron Super)")
+                    for item in job_data.get("rewritten_bullets", []):
+                        with st.container(border=True):
+                            st.markdown("**Before (Original):**")
+                            st.text(item["original_bullet"])
+                            st.markdown("**After (STAR Optimized & Aligned):**")
+                            st.info(item["rewritten_bullet"])
+                            if item.get("target_skills_highlighted"):
+                                st.write(f"🎯 **Skills Highlighted:** `{', '.join(item['target_skills_highlighted'])}`")
+                            if item.get("impact_rationale"):
+                                st.caption(f"💡 *Rationale:* {item['impact_rationale']}")
             except Exception as exc:
                 st.error(f"Could not connect to job rewrite service: {exc}")
